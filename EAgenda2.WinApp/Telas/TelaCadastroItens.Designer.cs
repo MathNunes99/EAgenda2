@@ -56,7 +56,7 @@
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 14;
             this.button2.Text = "Gravar";
-            this.button2.UseVisualStyleBackColor = true;            
+            this.button2.UseVisualStyleBackColor = true;
             // 
             // listItensTarefa
             // 
@@ -126,6 +126,7 @@
             this.Controls.Add(this.labelTituloTarefa);
             this.Controls.Add(this.label1);
             this.Name = "TelaCadastroItens";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "TelaCadastroItens";
             this.ResumeLayout(false);
             this.PerformLayout();

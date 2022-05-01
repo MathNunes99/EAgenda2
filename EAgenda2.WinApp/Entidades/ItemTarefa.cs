@@ -1,5 +1,8 @@
-﻿namespace EAgenda2.WinApp.Entidades
+﻿using System;
+
+namespace EAgenda2.WinApp.Entidades
 {
+    [Serializable]
     public class ItemTarefa
     {
         public string Titulo { get; internal set; }

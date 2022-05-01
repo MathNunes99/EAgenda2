@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace EAgenda2.WinApp.Entidades
 {
+    [Serializable]
     public class EntidadeBase
     {
         public int Numero { get; set; }

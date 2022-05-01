@@ -94,6 +94,7 @@
             this.Controls.Add(this.labelTituloTarefa);
             this.Controls.Add(this.label1);
             this.Name = "AtualizacaoItensTarefa";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "AtualizacaoItensTarefa";
             this.ResumeLayout(false);
             this.PerformLayout();

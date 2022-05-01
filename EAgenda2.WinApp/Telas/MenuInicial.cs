@@ -14,28 +14,40 @@ using System.Windows.Forms;
 namespace EAgenda2.WinApp
 {
     public partial class MenuInicial : Form
-    {
+    {        
         RepositorioTarefa repositorioTarefa;
         RepositorioContato repositorioContato;
         RepositorioCompromisso repositorioCompromisso;
         public MenuInicial()
         {
             repositorioTarefa = new RepositorioTarefa();
+            repositorioContato = new RepositorioContato();
+            repositorioCompromisso = new RepositorioCompromisso();            
             InitializeComponent();
+            CarregarListas();
+        }
+        //Listas -----------------------------------------------------------
+        private void CarregarListas()
+        {
             CarregarTarefas();
+            CarregarContato();
+            CarregarCompromisso();
         }
 
         private void CarregarTarefas()
         {
             List<Tarefa> tarefas = repositorioTarefa.SelecionarTodos();
 
-            listTarefasPendentes.Items.Clear();
+            List<Tarefa> tarefasOrdenadas = tarefas.OrderByDescending(x => x.Prioridade).ToList();
 
-            foreach (Tarefa t in tarefas)
+            listTarefasPendentes.Items.Clear();
+            listTarefasConcluidas.Items.Clear();
+            
+            foreach (Tarefa t in tarefasOrdenadas)
             {
                 if (t.CalcularPercentualConcluido() < 100)
                 {
-                    listTarefasPendentes.Items.Add(t);
+                    listTarefasPendentes.Items.Add(t);                    
                 }
                 else if (t.CalcularPercentualConcluido() == 100)
                 {
@@ -43,22 +55,486 @@ namespace EAgenda2.WinApp
                 }
             }
         }
+
+        private void CarregarContato()
+        {
+            List<Contato> contatos = repositorioContato.SelecionarTodos();
+
+            listContatosPorCargo.Items.Clear();
+            listContatosPorID.Items.Clear();
+
+            List<Contato> contatosOrdenadas = contatos.OrderByDescending(x => x.cargo).ToList();            
+
+            foreach (Contato c in contatos)
+            {
+                listContatosPorID.Items.Add(c);
+            }
+
+            foreach (Contato c in contatosOrdenadas)
+            {
+                listContatosPorCargo.Items.Add(c);
+            }
+        }
+
+        private void CarregarCompromisso()
+        {
+            List<Compromisso> compromissos = repositorioCompromisso.SelecionarTodos();
+
+            List<Compromisso> compromissosPorData = compromissos.OrderBy(x => x.Dia).ToList();
+
+            listCompromissosFuturos.Items.Clear();
+
+            foreach (Compromisso c in compromissos)
+            {
+                listCompromissosFuturos.Items.Add(c);
+            }
+        }
+
+        //Cadastros --------------------------------------------------------
+        private void CadastrarTarefa()
+        {
+
+            TelaCadastroTarefas tela = new TelaCadastroTarefas();
+
+            DialogResult result = tela.ShowDialog();
+
+            if (tela.Tarefa.Titulo == "")
+            {
+                MessageBox.Show("A Tarefa Necessita de Titulo",
+                "Cadastro de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if (result == DialogResult.OK)
+            {
+                if (tela.Tarefa.Prioridade == 0)
+                {
+                    tela.Tarefa.Prioridade = 1;
+                }
+                tela.Tarefa.DataCriacao = DateTime.Now;
+                repositorioTarefa.Inserir(tela.Tarefa);
+                CarregarListas();
+            }
+
+        }
+
+        private void CadastrarContato()
+        {
+            TelaCadastroContatos tela = new TelaCadastroContatos();
+
+            DialogResult result = tela.ShowDialog();
+
+            string tipo = "Cadastrar";
+
+            string validar = ValidarContato(tela.Contato, tipo);
+
+            if (validar != "")
+            {
+                MessageBox.Show(validar,
+                "Cadastro de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if (result == DialogResult.OK)
+            {
+                repositorioContato.Inserir(tela.Contato);
+                CarregarListas();
+            }
+        }
+
+        private void CadastrarCompromisso()
+        {
+            List<Contato> contatos = repositorioContato.SelecionarTodos();
+
+            if (contatos.Count == 0)
+            {
+                MessageBox.Show("Não possui contatos cadastrados!",
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            TelaCadastroCompromisso tela = new TelaCadastroCompromisso(contatos);
+
+            DialogResult result = tela.ShowDialog();            
+
+            string validarCompromisso = ValidarCompromisso(tela.Compromisso);
+            string validarDataCompromisso = ValidarDataCompromisso(tela.Compromisso);
+
+            //validação
+            if (validarCompromisso != "")
+            {
+                MessageBox.Show(validarCompromisso,
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if(validarDataCompromisso != "")
+            {
+                MessageBox.Show(validarDataCompromisso,
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if (tela.Compromisso.Inicio > tela.Compromisso.Termino ||
+                tela.Compromisso.Termino > 24)
+            {
+                MessageBox.Show("Hora de Inicio Maior que Hora de Termino",
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            // outra verificação relacionando outros compromissos e horas
+            else if (result == DialogResult.OK)
+            {
+                repositorioCompromisso.Inserir(tela.Compromisso);
+                repositorioContato.EditarCompromisso(tela.Compromisso.ContatoNome);
+                CarregarListas();
+            }
+        }
+        //Ediçoes ----------------------------------------------------------
+        private void EditarTarefa()
+        {
+            Tarefa tarefaSelecionada = (Tarefa)listTarefasPendentes.SelectedItem;
+
+            if (tarefaSelecionada == null)
+            {
+                MessageBox.Show("Selecione uma tarefa primeiro",
+                "Edição de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            TelaCadastroTarefas tela = new TelaCadastroTarefas();
+
+            tela.Tarefa = tarefaSelecionada;
+
+            DialogResult resultado = tela.ShowDialog();
+
+            if (resultado == DialogResult.OK)
+            {
+                if (tela.Tarefa.Titulo == "")
+                {
+                    MessageBox.Show("A Tarefa Necessita de Titulo",
+                    "Edição de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    return;
+                }
+                repositorioTarefa.Editar(tela.Tarefa);
+                CarregarListas();
+            }
+        }
+
+        private void EditarContato()
+        {
+            Contato contatoSelecionado = (Contato)listContatosPorCargo.SelectedItem;
+            if (contatoSelecionado == null)
+            {
+                contatoSelecionado = (Contato)listContatosPorID.SelectedItem;
+            }
+
+            if (contatoSelecionado == null)
+            {
+                MessageBox.Show("Selecione um contato primeiro",
+                "Edição de Contato", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            TelaCadastroContatos tela = new TelaCadastroContatos();
+
+            tela.Contato = contatoSelecionado;
+
+            DialogResult result = tela.ShowDialog();
+
+            string tipo = "editar";
+
+            string validar = ValidarContato(tela.Contato,tipo);
+
+            if (validar != "")
+            {
+                MessageBox.Show(validar,
+                "Cadastro de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if (result == DialogResult.OK)
+            {
+                repositorioContato.Editar(tela.Contato);
+                CarregarListas();
+            }
+        }
+
+        private void EditarCompromisso()
+        {
+            Compromisso compromissoSelecionado = (Compromisso)listCompromissosFuturos.SelectedItem;
+
+            if (compromissoSelecionado == null)
+            {
+                MessageBox.Show("Selecione um compromisso primeiro",
+                "Edição de Compromisso", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            List<Contato> contatos = repositorioContato.SelecionarTodos();
+
+            TelaCadastroCompromisso tela = new TelaCadastroCompromisso(contatos);
+
+            tela.Compromisso = compromissoSelecionado;
+
+            DialogResult result = tela.ShowDialog();            
+
+            string validarCompromisso = ValidarCompromisso(tela.Compromisso);
+
+            string validarDataCompromisso = ValidarDataCompromisso(tela.Compromisso);
+
+            //validação
+            if (validarCompromisso != "")
+            {
+                MessageBox.Show(validarCompromisso,
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if(validarDataCompromisso != "")
+            {
+                MessageBox.Show(validarDataCompromisso,
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            else if (tela.Compromisso.Inicio > tela.Compromisso.Termino ||
+                tela.Compromisso.Termino > 24)
+            {
+                MessageBox.Show("Hora de Inicio Maior que Hora de Termino",
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+            //else if(
+            else if (result == DialogResult.OK)
+            {
+                repositorioCompromisso.Editar(tela.Compromisso);
+                CarregarListas();
+            }
+        }
+        //Excluir ----------------------------------------------------------
+        private void ExcluirTarefa()
+        {
+            Tarefa tarefaSelecionada = (Tarefa)listTarefasPendentes.SelectedItem;
+            if (tarefaSelecionada == null)
+            {
+                tarefaSelecionada = (Tarefa)listTarefasConcluidas.SelectedItem;
+            }
+
+            if (tarefaSelecionada == null)
+            {
+                MessageBox.Show("Selecione uma tarefa primeiro",
+                "Exclusão de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show("Deseja realmente excluir a tarefa?",
+                "Exclusão de Tarefas", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+
+            if (resultado == DialogResult.OK)
+            {
+                repositorioTarefa.Excluir(tarefaSelecionada);
+                CarregarListas();
+            }
+        }
+
+        private void ExcluirContato()
+        {
+            Contato contatoSelecionado = (Contato)listContatosPorCargo.SelectedItem;            
+
+            if (contatoSelecionado == null)
+            {
+                MessageBox.Show("Selecione um contato primeiro",
+                "Exclusão de Contatos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show("Deseja realmente excluir o Contato?",
+                "Exclusão de Contatos", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+
+            if (resultado == DialogResult.OK)
+            {
+                repositorioContato.Excluir(contatoSelecionado);
+                CarregarListas();
+            }
+        }
+
+        private void ExcluirCompromisso()
+        {
+            Compromisso compromissoSelecionado = (Compromisso)listCompromissosFuturos.SelectedItem;
+            if (compromissoSelecionado == null)
+            {
+                compromissoSelecionado = (Compromisso)listCompromissosPassados.SelectedItem;
+            }
+
+            if (compromissoSelecionado == null)
+            {
+                MessageBox.Show("Selecione um Compromisso primeiro",
+                "Exclusão de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            DialogResult resultado = MessageBox.Show("Deseja realmente excluir o Contato?",
+                "Exclusão de Contatos", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+
+            if (resultado == DialogResult.OK)
+            {
+                repositorioCompromisso.Excluir(compromissoSelecionado);
+                CarregarListas();
+            }
+        }
+
+        //Validações -------------------------------------------------------
+        private string ValidarContato(Contato contato,string tipo)
+        {
+            string validar = "";
+            if (contato.Nome == "")
+            {
+                validar = "Contato precisa de um NOME";                
+            }
+            if (ValidacaoEmail(contato.Email) == false)
+            {
+                validar += "\n E-Mail Invalido";
+            }
+            if (contato.DDD < 1)
+            {
+                validar += "\n DDD Invalido";
+            }
+            if (contato.Telefone.ToString().Length < 8 || contato.Telefone.ToString().Length > 9)
+            {
+                validar += "\n telefone Invalido";
+            }
+
+            if (tipo == "Cadastrar")
+            {
+                List<Contato> contatos = repositorioContato.SelecionarTodos();
+
+                foreach (Contato c in contatos)
+                {
+                    if (c.Nome == contato.Nome)
+                    {
+                        validar += "\n Existe Contato com esse Nome";
+                    }
+                    if (c.Email == contato.Email)
+                    {
+                        validar += "\n Existe Contato com esse E-mail";
+                    }
+                    if (c.Telefone == contato.Telefone)
+                    {
+                        validar += "\n Existe Contato com esse Telefone";
+                    }
+                }
+            }
+            
+            return validar;
+        }
+
+        private bool ValidacaoEmail(string email)
+        {
+            try
+            {
+                var enderecoEmail = new System.Net.Mail.MailAddress(email);
+                return enderecoEmail.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private string ValidarCompromisso(Compromisso compromisso)
+        {
+            string validar = "";
+            
+            if (compromisso.Assunto == "")
+            {
+                validar = "Compromisso precisa de Assunto";
+            }
+            if (compromisso.Local == "")
+            {
+                validar += "\n Compromisso Necessita um Local";
+            }
+            if (compromisso.Dia == 0)
+            {
+                validar += "\n Compromisso Necessita um Dia";
+            }
+            if (compromisso.Mes == 0)
+            {
+                validar += "\n Compromisso Necessita um Mês";
+            }
+            if (compromisso.Inicio == 0 )
+            {
+                validar += "\n Compromisso Necessita um Horario de Inicio";
+            }
+            if (compromisso.Termino == 0)
+            {
+                validar += "\n Compromisso Necessita um Horario de Termino";
+            }
+
+            return validar;
+        }
+
+        private string ValidarDataCompromisso(Compromisso compromisso)
+        {
+            string validacao = "";
+
+            int diaHoje = DateTime.Today.Day;
+            int mesHoje = DateTime.Today.Month;
+
+            if (compromisso.Mes < mesHoje)
+            {
+                validacao = "Mes invalido";
+            }
+            if (compromisso.Mes == mesHoje)
+            {
+                if (compromisso.Dia < diaHoje)
+                {
+                    validacao = "\n Dia Invalido";
+                }
+            }
+
+            return validacao;
+        }
+
+        //Botões Tela ------------------------------------------------------
         private void btnCadastrar_Click(object sender, EventArgs e)
         {
             if (tabControl1.SelectedTab == tabTarefas)
             {
-                if (tabControl2.SelectedTab == tabTarefasPendentes)
-                {
-                    TelaCadastroTarefas tela = new TelaCadastroTarefas();
+                CadastrarTarefa();
+            }
+            else if (tabControl1.SelectedTab == tabContatos)
+            {
+                CadastrarContato();
+            }
+            else if (tabControl1.SelectedTab == tabCompromissos)
+            {
+                CadastrarCompromisso();
+            }
+        }
 
-                    DialogResult result = tela.ShowDialog();
+        private void btnEditar_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab == tabTarefas)
+            {
+                EditarTarefa();
+            }
+            else if (tabControl1.SelectedTab == tabContatos)
+            {
+                EditarContato();
+            }
+            else if (tabControl1.SelectedTab == tabCompromissos)
+            {
+                EditarCompromisso();
+            }
+        }
 
-                    if (result == DialogResult.OK)
-                    {
-                        repositorioTarefa.Inserir(tela.Tarefa);
-                        CarregarTarefas();
-                    }
-                }
+        private void btnExcluir_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab == tabTarefas)
+            {
+                ExcluirTarefa();
+            }
+            else if (tabControl1.SelectedTab == tabContatos)
+            {
+                ExcluirContato();
+            }
+            else if (tabControl1.SelectedTab == tabCompromissos)
+            {
+                ExcluirCompromisso();
             }
         }
 
@@ -83,7 +559,7 @@ namespace EAgenda2.WinApp
 
                 repositorioTarefa.AdicionarItens(tarefaSelecionada, itens);
 
-                CarregarTarefas();
+                CarregarListas();
             }
         }
 
@@ -107,56 +583,35 @@ namespace EAgenda2.WinApp
                 List<ItemTarefa> itensPendentes = tela.ItensPendentes;
 
                 repositorioTarefa.AtualizarItens(tarefaSelecionada, itensConcluidos, itensPendentes);
-                CarregarTarefas();
+                CarregarListas();
             }
         }
 
-        private void btnEditar_Click(object sender, EventArgs e)
+        private void dateTimePicker2_ValueChanged(object sender, EventArgs e)
         {
-            Tarefa tarefaSelecionada = (Tarefa)listTarefasPendentes.SelectedItem;
+            List<Compromisso> compromissos = repositorioCompromisso.SelecionarTodos();
 
-            if (tarefaSelecionada == null)
-            {
-                MessageBox.Show("Selecione uma tarefa primeiro",
-                "Edição de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                return;
-            }
+            int filtroDia = dateTimePicker2.Value.Day;
+            int filtroMes = dateTimePicker2.Value.Month;
 
-            TelaCadastroTarefas tela = new TelaCadastroTarefas();
+            List<Compromisso> compromissosPorDia = compromissos.OrderBy(x => x.Dia).ToList();
+            List<Compromisso> compromissosPorMes = compromissos.OrderBy(x => x.Mes).ToList();
+            listCompromissosFuturos.Items.Clear();
 
-            tela.Tarefa = tarefaSelecionada;
-
-            DialogResult resultado = tela.ShowDialog();
-
-            if (resultado == DialogResult.OK)
-            {
-                repositorioTarefa.Editar(tela.Tarefa);
-                CarregarTarefas();
-            }
-        }
-
-        private void btnExcluir_Click(object sender, EventArgs e)
-        {
-            Tarefa tarefaSelecionada = (Tarefa)listTarefasPendentes.SelectedItem;
-            if (tarefaSelecionada == null)
-            {
-                tarefaSelecionada = (Tarefa)listTarefasConcluidas.SelectedItem;
-            }
-
-            if (tarefaSelecionada == null)
-            {
-                MessageBox.Show("Selecione uma tarefa primeiro",
-                "Exclusão de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                return;
-            }
-
-            DialogResult resultado = MessageBox.Show("Deseja realmente excluir a tarefa?",
-                "Exclusão de Tarefas", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
-
-            if (resultado == DialogResult.OK)
-            {
-                repositorioTarefa.Excluir(tarefaSelecionada);
-                CarregarTarefas();
+            foreach (Compromisso c in compromissos)
+            {                
+                if (c.Mes < filtroMes)
+                {
+                    return;
+                }
+                if (c.Mes == filtroMes)
+                {
+                    if (c.Dia < filtroDia)
+                    {
+                        return;
+                    }
+                }
+                listCompromissosFuturos.Items.Add(c);
             }
         }
     }
