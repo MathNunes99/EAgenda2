@@ -9,6 +9,7 @@ namespace EAgenda2.WinApp.Entidades
 
         public bool Concluido { get; private set; }
 
+        //Métodos ------------------------------------
         public override string ToString()
         {
             return Titulo;

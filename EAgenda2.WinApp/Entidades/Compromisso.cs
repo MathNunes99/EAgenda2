@@ -15,12 +15,12 @@ namespace EAgenda2.WinApp.Entidades
         public int Mes { get; set; }
         public int Inicio { get; set; }
         public int Termino { get; set; }
-        public string ContatoNome { get; set; }
+        public Contato contato { get; set; }
 
         public override string ToString()
         {
             return $"Compromisso {Numero} - Assunto: {Assunto} / Local: {Local} / Dia {Dia}/{Mes} / " +
-                $"Hora: {Inicio}:00h a {Termino}:00h / Contato: {ContatoNome}";
+                $"Hora: {Inicio}:00h a {Termino}:00h / Contato: {contato.Nome}";
         }        
     }
 }

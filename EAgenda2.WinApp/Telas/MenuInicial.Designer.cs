@@ -52,11 +52,11 @@
             this.tabContatos = new System.Windows.Forms.TabPage();
             this.tabControl4 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.listContatosPorID = new System.Windows.Forms.ListBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.listContatosPorCargo = new System.Windows.Forms.ListBox();
             this.btnAdicionarItens = new System.Windows.Forms.Button();
             this.btnConcluirItens = new System.Windows.Forms.Button();
-            this.listContatosPorID = new System.Windows.Forms.ListBox();
             this.tabControl1.SuspendLayout();
             this.tabTarefas.SuspendLayout();
             this.tabControl2.SuspendLayout();
@@ -247,6 +247,7 @@
             this.dateTimePicker1.Name = "dateTimePicker1";
             this.dateTimePicker1.Size = new System.Drawing.Size(252, 23);
             this.dateTimePicker1.TabIndex = 1;
+            this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
             // 
             // listCompromissosPassados
             // 
@@ -330,6 +331,15 @@
             this.tabPage1.Text = "Ctt Por ID";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
+            // listContatosPorID
+            // 
+            this.listContatosPorID.FormattingEnabled = true;
+            this.listContatosPorID.ItemHeight = 15;
+            this.listContatosPorID.Location = new System.Drawing.Point(3, 3);
+            this.listContatosPorID.Name = "listContatosPorID";
+            this.listContatosPorID.Size = new System.Drawing.Size(699, 304);
+            this.listContatosPorID.TabIndex = 0;
+            // 
             // tabPage2
             // 
             this.tabPage2.Controls.Add(this.listContatosPorCargo);
@@ -371,15 +381,6 @@
             this.btnConcluirItens.Text = "Concluir Itens";
             this.btnConcluirItens.UseVisualStyleBackColor = true;
             this.btnConcluirItens.Click += new System.EventHandler(this.btnConcluirItens_Click);
-            // 
-            // listContatosPorID
-            // 
-            this.listContatosPorID.FormattingEnabled = true;
-            this.listContatosPorID.ItemHeight = 15;
-            this.listContatosPorID.Location = new System.Drawing.Point(3, 3);
-            this.listContatosPorID.Name = "listContatosPorID";
-            this.listContatosPorID.Size = new System.Drawing.Size(699, 304);
-            this.listContatosPorID.TabIndex = 0;
             // 
             // MenuInicial
             // 

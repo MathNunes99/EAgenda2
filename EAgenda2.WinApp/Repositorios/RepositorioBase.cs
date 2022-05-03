@@ -12,7 +12,7 @@ namespace EAgenda2.WinApp.Repositorios
     [Serializable]
     public class RepositorioBase<T> where T : EntidadeBase
     {        
-        protected List<T> registros;        
+        protected List<T> registros;
         
         public virtual void Inserir(T entidade)
         {            

@@ -22,7 +22,7 @@ namespace EAgenda2.WinApp
         {
             repositorioTarefa = new RepositorioTarefa();
             repositorioContato = new RepositorioContato();
-            repositorioCompromisso = new RepositorioCompromisso();            
+            repositorioCompromisso = new RepositorioCompromisso();
             InitializeComponent();
             CarregarListas();
         }
@@ -83,24 +83,34 @@ namespace EAgenda2.WinApp
             List<Compromisso> compromissosPorData = compromissos.OrderBy(x => x.Dia).ToList();
 
             listCompromissosFuturos.Items.Clear();
+            listCompromissosPassados.Items.Clear();
 
             foreach (Compromisso c in compromissos)
             {
-                listCompromissosFuturos.Items.Add(c);
+                if (c.Mes >= DateTime.Now.Month)
+                {
+                    if (c.Dia > DateTime.Now.Day)
+                    {
+                        listCompromissosFuturos.Items.Add(c);
+                        continue;
+                    }
+                }
+                listCompromissosPassados.Items.Add(c);
             }
         }
 
         //Cadastros --------------------------------------------------------
         private void CadastrarTarefa()
         {
-
             TelaCadastroTarefas tela = new TelaCadastroTarefas();
 
             DialogResult result = tela.ShowDialog();
 
-            if (tela.Tarefa.Titulo == "")
+            string validar = ValidarTarefa(tela.Tarefa);
+
+            if (validar != "")
             {
-                MessageBox.Show("A Tarefa Necessita de Titulo",
+                MessageBox.Show(validar,
                 "Cadastro de Tarefas", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
@@ -157,6 +167,7 @@ namespace EAgenda2.WinApp
 
             string validarCompromisso = ValidarCompromisso(tela.Compromisso);
             string validarDataCompromisso = ValidarDataCompromisso(tela.Compromisso);
+            string validarHoraCompromisso = ValidarHorarios(tela.Compromisso);
 
             //validação
             if (validarCompromisso != "")
@@ -178,11 +189,16 @@ namespace EAgenda2.WinApp
                 "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
-            // outra verificação relacionando outros compromissos e horas
+            else if(validarHoraCompromisso != "")
+            {
+                MessageBox.Show(validarHoraCompromisso,
+                "Cadastro de Compromissos", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
             else if (result == DialogResult.OK)
             {
                 repositorioCompromisso.Inserir(tela.Compromisso);
-                repositorioContato.EditarCompromisso(tela.Compromisso.ContatoNome);
+                repositorioContato.EditarCompromisso(tela.Compromisso.contato.Nome);
                 CarregarListas();
             }
         }
@@ -251,6 +267,7 @@ namespace EAgenda2.WinApp
             else if (result == DialogResult.OK)
             {
                 repositorioContato.Editar(tela.Contato);
+                repositorioCompromisso.EditarContato(tela.Contato);
                 CarregarListas();
             }
         }
@@ -333,7 +350,11 @@ namespace EAgenda2.WinApp
 
         private void ExcluirContato()
         {
-            Contato contatoSelecionado = (Contato)listContatosPorCargo.SelectedItem;            
+            Contato contatoSelecionado = (Contato)listContatosPorCargo.SelectedItem;  
+            if (contatoSelecionado == null)
+            {
+                contatoSelecionado = (Contato)listContatosPorID.SelectedItem;
+            }
 
             if (contatoSelecionado == null)
             {
@@ -378,6 +399,28 @@ namespace EAgenda2.WinApp
         }
 
         //Validações -------------------------------------------------------
+        private string ValidarTarefa(Tarefa tarefa)
+        {
+            string validacao = "";
+
+            List<Tarefa> tarefaValidacao = repositorioTarefa.SelecionarTodos();
+
+            if (tarefa.Titulo == "")
+            {
+                validacao = "Defina um título";
+            }
+            foreach (Tarefa t in tarefaValidacao)
+            {
+                if (t.Titulo == tarefa.Titulo)
+                {
+                    validacao = "\nTitulo ja existe";
+                    break;
+                }
+            }
+
+            return validacao;
+        }
+
         private string ValidarContato(Contato contato,string tipo)
         {
             string validar = "";
@@ -489,6 +532,44 @@ namespace EAgenda2.WinApp
             return validacao;
         }
 
+        private string ValidarHorarios(Compromisso compromisso)
+        {
+            string validar = "";
+            
+            List<Compromisso> listValidar = new List<Compromisso>();
+            listValidar.Clear();
+
+            List<Compromisso> compromissos = repositorioCompromisso.SelecionarTodos();            
+
+            int filtroDia = DateTime.Today.Day;
+            int filtroMes = DateTime.Today.Month;
+            //pega compromissos futuros
+            foreach (Compromisso c in compromissos)
+            {
+                if (c.Mes < filtroMes)
+                {
+                    listValidar.Add(c);
+                }
+                if (c.Mes == filtroMes)
+                {
+                    if (c.Dia > filtroDia)
+                    {
+                        listValidar.Add(c);
+                    }
+                }
+            }
+            //valida pelos compromissos futuros
+            foreach (Compromisso c in listValidar)
+            {
+                if (c.Inicio == compromisso.Inicio || c.Termino == compromisso.Termino)
+                {
+                    validar = "Ja possui compromissos marcados nesse Horario";
+                }
+
+            }
+            return validar;
+        }
+
         //Botões Tela ------------------------------------------------------
         private void btnCadastrar_Click(object sender, EventArgs e)
         {
@@ -593,25 +674,50 @@ namespace EAgenda2.WinApp
 
             int filtroDia = dateTimePicker2.Value.Day;
             int filtroMes = dateTimePicker2.Value.Month;
-
-            List<Compromisso> compromissosPorDia = compromissos.OrderBy(x => x.Dia).ToList();
-            List<Compromisso> compromissosPorMes = compromissos.OrderBy(x => x.Mes).ToList();
+            
             listCompromissosFuturos.Items.Clear();
 
             foreach (Compromisso c in compromissos)
             {                
                 if (c.Mes < filtroMes)
                 {
-                    return;
+                    listCompromissosFuturos.Items.Add(c);
                 }
-                if (c.Mes == filtroMes)
+                if (c.Mes >= filtroMes)
                 {
-                    if (c.Dia < filtroDia)
+                    if (c.Dia > filtroDia)
                     {
-                        return;
+                        listCompromissosFuturos.Items.Add(c);
                     }
+                }                
+            }
+        }
+
+        private void dateTimePicker1_ValueChanged(object sender, EventArgs e)
+        {
+            List<Compromisso> compromissos = repositorioCompromisso.SelecionarTodos();
+
+            int filtroDia = dateTimePicker1.Value.Day;
+            int filtroMes = dateTimePicker1.Value.Month;
+
+            List<Compromisso> compromissosPorDia = compromissos.OrderBy(x => x.Dia).ToList();
+            List<Compromisso> compromissosPorMes = compromissos.OrderBy(x => x.Mes).ToList();
+
+            listCompromissosPassados.Items.Clear();
+
+            foreach (Compromisso c in compromissos)
+            {
+                if (c.Mes < filtroMes)
+                {
+                    listCompromissosPassados.Items.Add(c);
                 }
-                listCompromissosFuturos.Items.Add(c);
+                else if (c.Mes == filtroMes)
+                {
+                    if (c.Dia <= filtroDia)
+                    {
+                        listCompromissosPassados.Items.Add(c);
+                    }
+                }                
             }
         }
     }

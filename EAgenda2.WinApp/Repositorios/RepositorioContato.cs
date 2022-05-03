@@ -53,7 +53,7 @@ namespace EAgenda2.WinApp.Repositorios
         {
             foreach (var item in registros)
             {
-                if (item.Nome == nome)
+                if (item.Numero == item.Numero)
                 {
                     item.compromisso = true;
                     break;

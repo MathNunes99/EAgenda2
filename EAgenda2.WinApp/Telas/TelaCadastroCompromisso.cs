@@ -14,8 +14,8 @@ namespace EAgenda2.WinApp.Telas
 {
     public partial class TelaCadastroCompromisso : Form
     {
-        Compromisso compromisso = new Compromisso();        
-
+        Compromisso compromisso = new Compromisso();
+        List<Contato> listaDeContatos;
 
         public TelaCadastroCompromisso(List<Contato> contatos)
         {            
@@ -24,7 +24,8 @@ namespace EAgenda2.WinApp.Telas
             {
                 cBoxContato.Items.Add(contato.Nome);
             }
-        }        
+            listaDeContatos = contatos;
+        }
 
         public Compromisso Compromisso
         {
@@ -41,7 +42,7 @@ namespace EAgenda2.WinApp.Telas
                 txtMes.Text = compromisso.Mes.ToString();
                 txtInicio.Text = compromisso.Inicio.ToString();
                 txtTermino.Text = compromisso.Termino.ToString();
-                cBoxContato.Text = compromisso.ContatoNome;
+                cBoxContato.Text = compromisso.contato.Nome;
             }
         }
 
@@ -57,7 +58,20 @@ namespace EAgenda2.WinApp.Telas
             compromisso.Inicio = Convert.ToInt32(inicio);
             string termino = txtTermino.Text;
             compromisso.Termino = Convert.ToInt32(termino);
-            compromisso.ContatoNome = cBoxContato.Text;
+
+            BuscarContato();
+        }
+
+        private Contato BuscarContato()
+        {
+            foreach (Contato c in listaDeContatos)
+            {                
+                if (c.Nome == cBoxContato.Text)
+                {
+                    compromisso.contato = c;
+                }
+            }
+            return new Contato();
         }
     }
 }

@@ -12,6 +12,7 @@ namespace EAgenda2.WinApp.Repositorios
     public class RepositorioCompromisso : RepositorioBase<Compromisso>
     {
         private const string EAgendaCompromisso = @"C:\temp\EAgendaCompromisso.bin";
+
         private int contador = 0;
         List<Compromisso> compromissos;
 
@@ -41,7 +42,7 @@ namespace EAgenda2.WinApp.Repositorios
                     item.Mes = compromisso.Mes;
                     item.Inicio = compromisso.Inicio;
                     item.Termino = compromisso.Termino;
-                    item.ContatoNome = compromisso.ContatoNome;
+                    item.contato.Nome = compromisso.contato.Nome;
                     break;
                 }
             }
@@ -55,6 +56,17 @@ namespace EAgenda2.WinApp.Repositorios
         }
 
         //Metodos -----------------------------------------------------
+        public void EditarContato(Contato contato)
+        {
+            foreach (var item in compromissos)
+            {
+                if (item.contato.Numero == contato.Numero)
+                {
+                    item.contato.Nome = contato.Nome;
+                }
+            }
+        }
+
         public List<Compromisso> SelecionarTodos()
         {
             compromissos = new List<Compromisso>();
@@ -64,7 +76,7 @@ namespace EAgenda2.WinApp.Repositorios
                 compromissos.Add(c);
             }
             return compromissos;
-        }
+        }        
 
         public void GravarRegistrosEmArquivo()
         {
