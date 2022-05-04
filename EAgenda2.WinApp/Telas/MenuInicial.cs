@@ -563,6 +563,7 @@ namespace EAgenda2.WinApp
             {
                 if (c.Inicio == compromisso.Inicio || c.Termino == compromisso.Termino)
                 {
+                    if(c.Dia == compromisso.Dia)
                     validar = "Ja possui compromissos marcados nesse Horario";
                 }
 
